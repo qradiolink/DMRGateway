@@ -387,9 +387,9 @@ int CDMRGateway::run()
 		if (m_configLen > 0U && m_repeater->getId() > 1000U)
 			break;
 
-		m_repeater->clock(10U);
+		m_repeater->clock(2U);
 
-		CThread::sleep(10U);
+		CThread::sleep(2U);
 	}
 
 	if (m_killed) {
@@ -1277,8 +1277,8 @@ int CDMRGateway::run()
 			}
 		}
 
-		if (ms < 10U)
-			CThread::sleep(10U);
+		if (ms < 2U)
+			CThread::sleep(2U);
 	}
 
 	delete m_xlxVoice;

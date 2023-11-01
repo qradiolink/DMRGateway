@@ -109,7 +109,7 @@ void CRewrite::processEmbeddedData(unsigned char* data, unsigned char n)
 		emb.getData(data);
 		return;
 	}
-
+    /*
 	CDMRLC* lc = m_data[m_readNum].getLC();
 	if (lc == NULL) {
 		lcss = m_embeddedLC.getData(data, n);
@@ -117,10 +117,11 @@ void CRewrite::processEmbeddedData(unsigned char* data, unsigned char n)
 		emb.getData(data);
 		return;
 	}
+	*/
 
-	FLCO flco = lc->getFLCO();
+	FLCO flco = m_data[m_readNum].getFLCO();
 
-	delete lc;
+	//delete lc;
 
 	// Replace any identity embedded data with the new one
 	if (flco == FLCO_GROUP || flco == FLCO_USER_USER)
