@@ -79,6 +79,7 @@ public:
 
 	// The General section
 	bool         getDaemon() const;
+    bool         getTrunking() const;
 	unsigned int getRFTimeout() const;
 	unsigned int getNetTimeout() const;
 	std::string  getRptAddress() const;
@@ -250,6 +251,7 @@ public:
 private:
 	std::string  m_file;
 	bool         m_daemon;
+    bool         m_trunking;
 	std::string  m_rptAddress;
 	unsigned short m_rptPort;
 	std::string  m_localAddress;

@@ -273,6 +273,8 @@ bool CConf::read()
 	if (section == SECTION_GENERAL) {
 			if (::strcmp(key, "Daemon") == 0)
 				m_daemon = ::atoi(value) == 1;
+            else if (::strcmp(key, "Trunking") == 0)
+				m_trunking = ::atoi(value) == 1;
 			else if (::strcmp(key, "Timeout") == 0)
 				m_rfTimeout = m_netTimeout = (unsigned int)::atoi(value);
 			else if (::strcmp(key, "RFTimeout") == 0)
@@ -1015,6 +1017,11 @@ bool CConf::read()
 bool CConf::getDaemon() const
 {
 	return m_daemon;
+}
+
+bool CConf::getTrunking() const
+{
+	return m_trunking;
 }
 
 std::string CConf::getRptAddress() const

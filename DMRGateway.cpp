@@ -386,10 +386,10 @@ int CDMRGateway::run()
 		m_configLen = m_repeater->getShortConfig(m_config);
 		if (m_configLen > 0U && m_repeater->getId() > 1000U)
 			break;
+        unsigned int sleep_time = m_conf.getTrunking() ? 2U : 10U;
+		m_repeater->clock(sleep_time);
 
-		m_repeater->clock(2U);
-
-		CThread::sleep(2U);
+		CThread::sleep(sleep_time);
 	}
 
 	if (m_killed) {
@@ -715,7 +715,7 @@ int CDMRGateway::run()
 					}
 
 					if (result == RESULT_MATCHED) {
-						if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK1) {
+						if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK1) {
 							rewrite(m_dmr1SrcRewrites, data, trace);
 							m_dmrNetwork1->write(data);
 							m_status[slotNo] = DMRGWS_DMRNETWORK1;
@@ -737,7 +737,7 @@ int CDMRGateway::run()
 						}
 
 						if (result == RESULT_MATCHED) {
-							if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK2) {
+							if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK2) {
 								rewrite(m_dmr2SrcRewrites, data, trace);
 								m_dmrNetwork2->write(data);
 								m_status[slotNo] = DMRGWS_DMRNETWORK2;
@@ -760,7 +760,7 @@ int CDMRGateway::run()
 						}
 
 						if (result == RESULT_MATCHED) {
-							if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK3) {
+							if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK3) {
 								rewrite(m_dmr3SrcRewrites, data, trace);
 								m_dmrNetwork3->write(data);
 								m_status[slotNo] = DMRGWS_DMRNETWORK3;
@@ -783,7 +783,7 @@ int CDMRGateway::run()
 						}
 
 						if (result == RESULT_MATCHED) {
-							if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK4) {
+							if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK4) {
 								rewrite(m_dmr4SrcRewrites, data, trace);
 								m_dmrNetwork4->write(data);
 								m_status[slotNo] = DMRGWS_DMRNETWORK4;
@@ -806,7 +806,7 @@ int CDMRGateway::run()
 						}
 
 						if (result == RESULT_MATCHED) {
-							if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK5) {
+							if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK5) {
 								rewrite(m_dmr5SrcRewrites, data, trace);
 								m_dmrNetwork5->write(data);
 								m_status[slotNo] = DMRGWS_DMRNETWORK5;
@@ -828,7 +828,7 @@ int CDMRGateway::run()
 						}
 
 						if (result == RESULT_MATCHED) {
-							if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK1) {
+							if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK1) {
 								rewrite(m_dmr1SrcRewrites, data, trace);
 								m_dmrNetwork1->write(data);
 								m_status[slotNo] = DMRGWS_DMRNETWORK1;
@@ -850,7 +850,7 @@ int CDMRGateway::run()
 						}
 
 						if (result == RESULT_MATCHED) {
-							if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK2) {
+							if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK2) {
 								rewrite(m_dmr2SrcRewrites, data, trace);
 								m_dmrNetwork2->write(data);
 								m_status[slotNo] = DMRGWS_DMRNETWORK2;
@@ -872,7 +872,7 @@ int CDMRGateway::run()
 						}
 
 						if (result == RESULT_MATCHED) {
-							if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK3) {
+							if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK3) {
 								rewrite(m_dmr3SrcRewrites, data, trace);
 								m_dmrNetwork3->write(data);
 								m_status[slotNo] = DMRGWS_DMRNETWORK3;
@@ -894,7 +894,7 @@ int CDMRGateway::run()
 						}
 
 						if (result == RESULT_MATCHED) {
-							if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK4) {
+							if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK4) {
 								rewrite(m_dmr4SrcRewrites, data, trace);
 								m_dmrNetwork4->write(data);
 								m_status[slotNo] = DMRGWS_DMRNETWORK4;
@@ -916,7 +916,7 @@ int CDMRGateway::run()
 						}
 
 						if (result == RESULT_MATCHED) {
-							if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK5) {
+							if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK5) {
 								rewrite(m_dmr5SrcRewrites, data, trace);
 								m_dmrNetwork5->write(data);
 								m_status[slotNo] = DMRGWS_DMRNETWORK5;
@@ -983,7 +983,7 @@ int CDMRGateway::run()
 				if (rewritten) {
 					// Check that the rewritten slot is free to use.
 					slotNo = data.getSlotNo();
-					if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK1) {
+					if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK1) {
 						for (std::vector<CRewriteDynTGRF*>::iterator it = m_dynRF.begin(); it != m_dynRF.end(); ++it)
 							(*it)->stopVoice(slotNo);
 						m_repeater->write(data);
@@ -1033,7 +1033,7 @@ int CDMRGateway::run()
 				if (rewritten) {
 					// Check that the rewritten slot is free to use.
 					slotNo = data.getSlotNo();
-					if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK2) {
+					if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK2) {
 						for (std::vector<CRewriteDynTGRF*>::iterator it = m_dynRF.begin(); it != m_dynRF.end(); ++it)
 							(*it)->stopVoice(slotNo);
 						m_repeater->write(data);
@@ -1083,7 +1083,7 @@ int CDMRGateway::run()
 				if (rewritten) {
 					// Check that the rewritten slot is free to use.
 					slotNo = data.getSlotNo();
-					if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK3) {
+					if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK3) {
 						for (std::vector<CRewriteDynTGRF*>::iterator it = m_dynRF.begin(); it != m_dynRF.end(); ++it)
 							(*it)->stopVoice(slotNo);
 						m_repeater->write(data);
@@ -1133,7 +1133,7 @@ int CDMRGateway::run()
 				if (rewritten) {
 					// Check that the rewritten slot is free to use.
 					slotNo = data.getSlotNo();
-					if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK4) {
+					if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK4) {
 						for (std::vector<CRewriteDynTGRF*>::iterator it = m_dynRF.begin(); it != m_dynRF.end(); ++it)
 							(*it)->stopVoice(slotNo);
 						m_repeater->write(data);
@@ -1183,7 +1183,7 @@ int CDMRGateway::run()
 				if (rewritten) {
 					// Check that the rewritten slot is free to use.
 					slotNo = data.getSlotNo();
-					if (1 || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK5) {
+					if (m_conf.getTrunking() || m_status[slotNo] == DMRGWS_NONE || m_status[slotNo] == DMRGWS_DMRNETWORK5) {
 						for (std::vector<CRewriteDynTGRF*>::iterator it = m_dynRF.begin(); it != m_dynRF.end(); ++it)
 							(*it)->stopVoice(slotNo);
 						m_repeater->write(data);
@@ -1276,9 +1276,9 @@ int CDMRGateway::run()
 				timer[i]->stop();
 			}
 		}
-
-		if (ms < 2U)
-			CThread::sleep(2U);
+        unsigned int sleep_time = m_conf.getTrunking() ? 2U : 10U;
+		if (ms < sleep_time)
+			CThread::sleep(sleep_time);
 	}
 
 	delete m_xlxVoice;
@@ -2475,19 +2475,19 @@ void CDMRGateway::processRadioPosition()
 	if (!ret)
 		return;
 
-	if (m_network1Enabled && (m_dmrNetwork1 != NULL) && (1 || m_status[1U] == DMRGWS_DMRNETWORK1 || m_status[2U] == DMRGWS_DMRNETWORK1))
+	if (m_network1Enabled && (m_dmrNetwork1 != NULL) && (m_conf.getTrunking() || m_status[1U] == DMRGWS_DMRNETWORK1 || m_status[2U] == DMRGWS_DMRNETWORK1))
 		m_dmrNetwork1->writeRadioPosition(buffer, length);
 
-	if (m_network2Enabled && (m_dmrNetwork2 != NULL) && (1 || m_status[1U] == DMRGWS_DMRNETWORK2 || m_status[2U] == DMRGWS_DMRNETWORK2))
+	if (m_network2Enabled && (m_dmrNetwork2 != NULL) && (m_conf.getTrunking() || m_status[1U] == DMRGWS_DMRNETWORK2 || m_status[2U] == DMRGWS_DMRNETWORK2))
 		m_dmrNetwork2->writeRadioPosition(buffer, length);
 
-	if (m_network3Enabled && (m_dmrNetwork3 != NULL) && (1 || m_status[1U] == DMRGWS_DMRNETWORK3 || m_status[2U] == DMRGWS_DMRNETWORK3))
+	if (m_network3Enabled && (m_dmrNetwork3 != NULL) && (m_conf.getTrunking() || m_status[1U] == DMRGWS_DMRNETWORK3 || m_status[2U] == DMRGWS_DMRNETWORK3))
 		m_dmrNetwork3->writeRadioPosition(buffer, length);
 
-	if (m_network4Enabled && (m_dmrNetwork4 != NULL) && (1 || m_status[1U] == DMRGWS_DMRNETWORK4 || m_status[2U] == DMRGWS_DMRNETWORK4))
+	if (m_network4Enabled && (m_dmrNetwork4 != NULL) && (m_conf.getTrunking() || m_status[1U] == DMRGWS_DMRNETWORK4 || m_status[2U] == DMRGWS_DMRNETWORK4))
 		m_dmrNetwork4->writeRadioPosition(buffer, length);
 
-	if (m_network5Enabled && (m_dmrNetwork5 != NULL) && (1 || m_status[1U] == DMRGWS_DMRNETWORK5 || m_status[2U] == DMRGWS_DMRNETWORK5))
+	if (m_network5Enabled && (m_dmrNetwork5 != NULL) && (m_conf.getTrunking() || m_status[1U] == DMRGWS_DMRNETWORK5 || m_status[2U] == DMRGWS_DMRNETWORK5))
 		m_dmrNetwork5->writeRadioPosition(buffer, length);
 }
 
@@ -2499,19 +2499,19 @@ void CDMRGateway::processTalkerAlias()
 	if (!ret)
 		return;
 
-	if (m_network1Enabled && (m_dmrNetwork1 != NULL) && (1 || m_status[1U] == DMRGWS_DMRNETWORK1 || m_status[2U] == DMRGWS_DMRNETWORK1))
+	if (m_network1Enabled && (m_dmrNetwork1 != NULL) && (m_conf.getTrunking() || m_status[1U] == DMRGWS_DMRNETWORK1 || m_status[2U] == DMRGWS_DMRNETWORK1))
 		m_dmrNetwork1->writeTalkerAlias(buffer, length);
 
-	if (m_network2Enabled && (m_dmrNetwork2 != NULL) && (1 || m_status[1U] == DMRGWS_DMRNETWORK2 || m_status[2U] == DMRGWS_DMRNETWORK2))
+	if (m_network2Enabled && (m_dmrNetwork2 != NULL) && (m_conf.getTrunking() || m_status[1U] == DMRGWS_DMRNETWORK2 || m_status[2U] == DMRGWS_DMRNETWORK2))
 		m_dmrNetwork2->writeTalkerAlias(buffer, length);
 
-	if (m_network3Enabled && (m_dmrNetwork3 != NULL) && (1 || m_status[1U] == DMRGWS_DMRNETWORK3 || m_status[2U] == DMRGWS_DMRNETWORK3))
+	if (m_network3Enabled && (m_dmrNetwork3 != NULL) && (m_conf.getTrunking() || m_status[1U] == DMRGWS_DMRNETWORK3 || m_status[2U] == DMRGWS_DMRNETWORK3))
 		m_dmrNetwork3->writeTalkerAlias(buffer, length);
 
-	if (m_network4Enabled && (m_dmrNetwork4 != NULL) && (1 || m_status[1U] == DMRGWS_DMRNETWORK4 || m_status[2U] == DMRGWS_DMRNETWORK4))
+	if (m_network4Enabled && (m_dmrNetwork4 != NULL) && (m_conf.getTrunking() || m_status[1U] == DMRGWS_DMRNETWORK4 || m_status[2U] == DMRGWS_DMRNETWORK4))
 		m_dmrNetwork4->writeTalkerAlias(buffer, length);
 
-	if (m_network5Enabled && (m_dmrNetwork5 != NULL) && (1 || m_status[1U] == DMRGWS_DMRNETWORK5 || m_status[2U] == DMRGWS_DMRNETWORK5))
+	if (m_network5Enabled && (m_dmrNetwork5 != NULL) && (m_conf.getTrunking() || m_status[1U] == DMRGWS_DMRNETWORK5 || m_status[2U] == DMRGWS_DMRNETWORK5))
 		m_dmrNetwork5->writeTalkerAlias(buffer, length);
 }
 
