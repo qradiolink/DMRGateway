@@ -618,6 +618,31 @@ int CDMRGateway::run()
 		CDMRData data;
 
 		bool ret = m_repeater->read(data);
+		if(m_conf.getTrunking() && m_conf.getTrunkingProtocol() && data.getMessageFlag())
+		{
+			if (m_network1Enabled && (m_dmrNetwork1 != NULL))
+			{
+				m_dmrNetwork1->write(data);
+			}
+			if (m_network2Enabled && (m_dmrNetwork2 != NULL))
+			{
+				m_dmrNetwork2->write(data);
+			}
+			if (m_network3Enabled && (m_dmrNetwork3 != NULL))
+			{
+				m_dmrNetwork3->write(data);
+			}
+			if (m_network4Enabled && (m_dmrNetwork4 != NULL))
+			{
+				m_dmrNetwork4->write(data);
+			}
+			if (m_network5Enabled && (m_dmrNetwork5 != NULL))
+			{
+				m_dmrNetwork5->write(data);
+			}
+			ret = false;
+			data.setMessageFlag(false);
+		}
 		if (ret) {
 			unsigned int slotNo = data.getSlotNo();
 			unsigned int srcId = data.getSrcId();
@@ -955,6 +980,12 @@ int CDMRGateway::run()
 
 		if (m_network1Enabled && (m_dmrNetwork1 != NULL)) {
 			ret = m_dmrNetwork1->read(data);
+			if(m_conf.getTrunking() && m_conf.getTrunkingProtocol() && data.getMessageFlag())
+			{
+				m_repeater->write(data);
+				ret = false;
+				data.setMessageFlag(false);
+			}
 			if (ret) {
 				unsigned int slotNo = data.getSlotNo();
 				unsigned int srcId  = data.getSrcId();
@@ -1005,6 +1036,12 @@ int CDMRGateway::run()
 
 		if (m_network2Enabled && (m_dmrNetwork2 != NULL)) {
 			ret = m_dmrNetwork2->read(data);
+			if(m_conf.getTrunking() && m_conf.getTrunkingProtocol() && data.getMessageFlag())
+			{
+				m_repeater->write(data);
+				ret = false;
+				data.setMessageFlag(false);
+			}
 			if (ret) {
 				unsigned int slotNo = data.getSlotNo();
 				unsigned int srcId  = data.getSrcId();
@@ -1055,6 +1092,12 @@ int CDMRGateway::run()
 
 		if (m_network3Enabled && (m_dmrNetwork3 != NULL)) {
 			ret = m_dmrNetwork3->read(data);
+			if(m_conf.getTrunking() && m_conf.getTrunkingProtocol() && data.getMessageFlag())
+			{
+				m_repeater->write(data);
+				ret = false;
+				data.setMessageFlag(false);
+			}
 			if (ret) {
 				unsigned int slotNo = data.getSlotNo();
 				unsigned int srcId = data.getSrcId();
@@ -1105,6 +1148,12 @@ int CDMRGateway::run()
 
 		if (m_network4Enabled && (m_dmrNetwork4 != NULL)) {
 			ret = m_dmrNetwork4->read(data);
+			if(m_conf.getTrunking() && m_conf.getTrunkingProtocol() && data.getMessageFlag())
+			{
+				m_repeater->write(data);
+				ret = false;
+				data.setMessageFlag(false);
+			}
 			if (ret) {
 				unsigned int slotNo = data.getSlotNo();
 				unsigned int srcId = data.getSrcId();
@@ -1155,6 +1204,12 @@ int CDMRGateway::run()
 
 		if (m_network5Enabled && (m_dmrNetwork5 != NULL)) {
 			ret = m_dmrNetwork5->read(data);
+			if(m_conf.getTrunking() && m_conf.getTrunkingProtocol() && data.getMessageFlag())
+			{
+				m_repeater->write(data);
+				ret = false;
+				data.setMessageFlag(false);
+			}
 			if (ret) {
 				unsigned int slotNo = data.getSlotNo();
 				unsigned int srcId = data.getSrcId();
@@ -1354,6 +1409,7 @@ bool CDMRGateway::createMMDVM()
 	std::string localAddress = m_conf.getLocalAddress();
 	unsigned short localPort = m_conf.getLocalPort();
 	bool debug               = m_conf.getDebug();
+	bool trunkingProtocol    = m_conf.getTrunkingProtocol();
 
 	LogInfo("MMDVM Network Parameters");
 	LogInfo("    Rpt Address: %s", rptAddress.c_str());
@@ -1361,7 +1417,7 @@ bool CDMRGateway::createMMDVM()
 	LogInfo("    Local Address: %s", localAddress.c_str());
 	LogInfo("    Local Port: %hu", localPort);
 
-	m_repeater = new CMMDVMNetwork(rptAddress, rptPort, localAddress, localPort, debug);
+	m_repeater = new CMMDVMNetwork(rptAddress, rptPort, localAddress, localPort, debug, trunkingProtocol);
 
 	bool ret = m_repeater->open();
 	if (!ret) {
@@ -1383,6 +1439,7 @@ bool CDMRGateway::createDMRNetwork1()
 	bool location        = m_conf.getDMRNetwork1Location();
 	bool debug           = m_conf.getDMRNetwork1Debug();
 	m_dmr1Name           = m_conf.getDMRNetwork1Name();
+	bool trunkingProtocol    = m_conf.getTrunkingProtocol();
 
 	if (id == 0U)
 		id = m_repeater->getId();
@@ -1398,7 +1455,7 @@ bool CDMRGateway::createDMRNetwork1()
 		LogInfo("    Local: random");
 	LogInfo("    Location Data: %s", location ? "yes" : "no");
 
-	m_dmrNetwork1 = new CDMRNetwork(address, port, local, id, password, m_dmr1Name, location, debug);
+	m_dmrNetwork1 = new CDMRNetwork(address, port, local, id, password, m_dmr1Name, location, debug, trunkingProtocol);
 
 	std::string options = m_conf.getDMRNetwork1Options();
 
@@ -1551,6 +1608,7 @@ bool CDMRGateway::createDMRNetwork2()
 	std::string password = m_conf.getDMRNetwork2Password();
 	bool location        = m_conf.getDMRNetwork2Location();
 	bool debug           = m_conf.getDMRNetwork2Debug();
+	bool trunkingProtocol    = m_conf.getTrunkingProtocol();
 	m_dmr2Name           = m_conf.getDMRNetwork2Name();
 
 	if (id == 0U)
@@ -1567,7 +1625,7 @@ bool CDMRGateway::createDMRNetwork2()
 		LogInfo("    Local: random");
 	LogInfo("    Location Data: %s", location ? "yes" : "no");
 
-	m_dmrNetwork2 = new CDMRNetwork(address, port, local, id, password, m_dmr2Name, location, debug);
+	m_dmrNetwork2 = new CDMRNetwork(address, port, local, id, password, m_dmr2Name, location, debug, trunkingProtocol);
 
 	std::string options = m_conf.getDMRNetwork2Options();
 
@@ -1720,6 +1778,7 @@ bool CDMRGateway::createDMRNetwork3()
 	std::string password = m_conf.getDMRNetwork3Password();
 	bool location        = m_conf.getDMRNetwork3Location();
 	bool debug           = m_conf.getDMRNetwork3Debug();
+	bool trunkingProtocol    = m_conf.getTrunkingProtocol();
 	m_dmr3Name           = m_conf.getDMRNetwork3Name();
 
 	if (id == 0U)
@@ -1736,7 +1795,7 @@ bool CDMRGateway::createDMRNetwork3()
 		LogInfo("    Local: random");
 	LogInfo("    Location Data: %s", location ? "yes" : "no");
 
-	m_dmrNetwork3 = new CDMRNetwork(address, port, local, id, password, m_dmr3Name, location, debug);
+	m_dmrNetwork3 = new CDMRNetwork(address, port, local, id, password, m_dmr3Name, location, debug, trunkingProtocol);
 
 	std::string options = m_conf.getDMRNetwork3Options();
 
@@ -1889,6 +1948,7 @@ bool CDMRGateway::createDMRNetwork4()
 	std::string password = m_conf.getDMRNetwork4Password();
 	bool location        = m_conf.getDMRNetwork4Location();
 	bool debug           = m_conf.getDMRNetwork4Debug();
+	bool trunkingProtocol    = m_conf.getTrunkingProtocol();
 	m_dmr4Name           = m_conf.getDMRNetwork4Name();
 
 	if (id == 0U)
@@ -1905,7 +1965,7 @@ bool CDMRGateway::createDMRNetwork4()
 		LogInfo("    Local: random");
 	LogInfo("    Location Data: %s", location ? "yes" : "no");
 
-	m_dmrNetwork4 = new CDMRNetwork(address, port, local, id, password, m_dmr4Name, location, debug);
+	m_dmrNetwork4 = new CDMRNetwork(address, port, local, id, password, m_dmr4Name, location, debug, trunkingProtocol);
 
 	std::string options = m_conf.getDMRNetwork4Options();
 
@@ -2058,6 +2118,7 @@ bool CDMRGateway::createDMRNetwork5()
 	std::string password = m_conf.getDMRNetwork5Password();
 	bool location        = m_conf.getDMRNetwork5Location();
 	bool debug           = m_conf.getDMRNetwork5Debug();
+	bool trunkingProtocol    = m_conf.getTrunkingProtocol();
 	m_dmr5Name           = m_conf.getDMRNetwork5Name();
 
 	if (id == 0U)
@@ -2074,7 +2135,7 @@ bool CDMRGateway::createDMRNetwork5()
 		LogInfo("    Local: random");
 	LogInfo("    Location Data: %s", location ? "yes" : "no");
 
-	m_dmrNetwork5 = new CDMRNetwork(address, port, local, id, password, m_dmr5Name, location, debug);
+	m_dmrNetwork5 = new CDMRNetwork(address, port, local, id, password, m_dmr5Name, location, debug, trunkingProtocol);
 
 	std::string options = m_conf.getDMRNetwork5Options();
 
@@ -2319,8 +2380,9 @@ bool CDMRGateway::linkXLX(const std::string &number)
 
 	m_xlxConnected = false;
 	m_xlxRelink.stop();
+	bool trunkingProtocol    = m_conf.getTrunkingProtocol();
 
-	m_xlxNetwork = new CDMRNetwork(reflector->m_address, m_xlxPort, m_xlxLocal, m_xlxId, m_xlxPassword, "XLX", false, m_xlxDebug);
+	m_xlxNetwork = new CDMRNetwork(reflector->m_address, m_xlxPort, m_xlxLocal, m_xlxId, m_xlxPassword, "XLX", false, m_xlxDebug, trunkingProtocol);
 
 	unsigned char config[400U];
 	unsigned int len = getConfig("XLX", config);

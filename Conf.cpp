@@ -276,6 +276,8 @@ bool CConf::read()
 				m_daemon = ::atoi(value) == 1;
             else if (::strcmp(key, "Trunking") == 0)
 				m_trunking = ::atoi(value) == 1;
+			else if (::strcmp(key, "TrunkingProtocol") == 0)
+				m_trunkingProtocol = ::atoi(value) == 1;
 			else if (::strcmp(key, "Timeout") == 0)
 				m_rfTimeout = m_netTimeout = (unsigned int)::atoi(value);
 			else if (::strcmp(key, "RFTimeout") == 0)
@@ -1023,6 +1025,11 @@ bool CConf::getDaemon() const
 bool CConf::getTrunking() const
 {
 	return m_trunking;
+}
+
+bool CConf::getTrunkingProtocol() const
+{
+	return m_trunkingProtocol;
 }
 
 std::string CConf::getRptAddress() const

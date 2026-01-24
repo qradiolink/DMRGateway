@@ -31,7 +31,7 @@ const unsigned int BUFFER_LENGTH = 500U;
 const unsigned int HOMEBREW_DATA_PACKET_LENGTH = 55U;
 
 
-CDMRNetwork::CDMRNetwork(const std::string& address, unsigned short port, unsigned short local, unsigned int id, const std::string& password, const std::string& name, bool location, bool debug) :
+CDMRNetwork::CDMRNetwork(const std::string& address, unsigned short port, unsigned short local, unsigned int id, const std::string& password, const std::string& name, bool location, bool debug, bool trunkingProtocol) :
 m_addr(),
 m_addrLen(0U),
 m_id(NULL),
@@ -50,7 +50,8 @@ m_rxData(1000U, "DMR Network"),
 m_options(),
 m_configData(NULL),
 m_configLen(0U),
-m_beacon(false)
+m_beacon(false),
+m_trunkingProtocol(trunkingProtocol)
 {
 	assert(!address.empty());
 	assert(port > 0U);
@@ -130,6 +131,15 @@ bool CDMRNetwork::read(CDMRData& data)
 	m_rxData.getData(&length, 1U);
 	m_rxData.getData(m_buffer, length);
 
+	if ((::memcmp(m_buffer, "DMRT", 4U) == 0) && m_trunkingProtocol)
+	{
+		if(data.setMessage(m_buffer, length))
+		{
+			return true;
+		}
+		return false;
+	}
+
 	// Is this a data packet?
 	if (::memcmp(m_buffer, "DMRD", 4U) != 0)
 		return false;
@@ -179,6 +189,14 @@ bool CDMRNetwork::read(CDMRData& data)
 		data.setN(n);
 	}
 
+	if((length == HOMEBREW_DATA_PACKET_LENGTH + 16) && m_trunkingProtocol)
+	{
+		unsigned char uuid[16];
+		::memset(uuid, 0, 16U);
+		::memcpy(uuid, m_buffer + 55U, 16U);
+		data.setUUID(uuid);
+	}
+
 	return true;
 }
 
@@ -187,8 +205,23 @@ bool CDMRNetwork::write(const CDMRData& data)
 	if (m_status != RUNNING)
 		return false;
 
-	unsigned char buffer[HOMEBREW_DATA_PACKET_LENGTH];
-	::memset(buffer, 0x00U, HOMEBREW_DATA_PACKET_LENGTH);
+	if(data.getMessageFlag() && m_trunkingProtocol)
+	{
+		unsigned int buffer_size = data.getMessageSize();
+		if(buffer_size < 1)
+			return false;
+		unsigned char buffer[buffer_size];
+		::memset(buffer, 0x00U, buffer_size);
+		unsigned int length = data.getMessage(buffer);
+		if (m_debug)
+			CUtils::dump(1U, "Message to Network Transmitted", buffer, length);
+
+		write(buffer, length);
+		return true;
+	}
+	unsigned int buffer_size = m_trunkingProtocol ? HOMEBREW_DATA_PACKET_LENGTH + 16U : HOMEBREW_DATA_PACKET_LENGTH;
+	unsigned char buffer[buffer_size];
+	::memset(buffer, 0x00U, buffer_size);
 
 	buffer[0U]  = 'D';
 	buffer[1U]  = 'M';
@@ -234,7 +267,14 @@ bool CDMRNetwork::write(const CDMRData& data)
 
 	buffer[54U] = data.getRSSI();
 
-	write(buffer, HOMEBREW_DATA_PACKET_LENGTH);
+	if(m_trunkingProtocol)
+	{
+		unsigned char uuid[16U];
+		data.getUUID(uuid);
+		::memcpy(buffer + 55U, uuid, 16U);
+	}
+
+	write(buffer, buffer_size);
 
 	return true;
 }
@@ -283,8 +323,10 @@ bool CDMRNetwork::writeHomePosition(float latitude, float longitude)
 		return false;
 
 	char buffer[50U];
-
-	::memcpy(buffer + 0U, "RPTG", 4U);
+	if(m_trunkingProtocol)
+		::memcpy(buffer + 0U, "DTCG", 4U);
+	else
+		::memcpy(buffer + 0U, "RPTG", 4U);
 
 	::memcpy(buffer + 4U, m_id, 4U);
 
@@ -309,7 +351,10 @@ void CDMRNetwork::close(bool sayGoodbye)
 
 	if (sayGoodbye && (m_status == RUNNING)) {
 		unsigned char buffer[9U];
-		::memcpy(buffer + 0U, "RPTCL", 5U);
+		if(m_trunkingProtocol)
+			::memcpy(buffer + 0U, "DTCCL", 5U);
+		else
+			::memcpy(buffer + 0U, "RPTCL", 5U);
 		::memcpy(buffer + 5U, m_id, 4U);
 		write(buffer, 9U);
 	}
@@ -355,7 +400,11 @@ void CDMRNetwork::clock(unsigned int ms)
 		CUtils::dump(1U, "Network Received", m_buffer, length);
 
 	if (length > 0 && CUDPSocket::match(m_addr, address)) {
-		if (::memcmp(m_buffer, "DMRD", 4U) == 0) {
+		if ((::memcmp(m_buffer, "DMRT", 4U) == 0) && (length <= 255) && m_trunkingProtocol && m_enabled) {
+			unsigned char len = length;
+			m_rxData.addData(&len, 1U);
+			m_rxData.addData(m_buffer, len);
+		} else if (::memcmp(m_buffer, "DMRD", 4U) == 0) {
 			if (m_debug)
 				CUtils::dump(1U, "Network Received", m_buffer, length);
 
@@ -425,6 +474,98 @@ void CDMRNetwork::clock(unsigned int ms)
 			m_timeoutTimer.start();
 		} else if (::memcmp(m_buffer, "RPTSBKN", 7U) == 0) {
 			m_beacon = true;
+		} else if ((::memcmp(m_buffer, "DTCNAK",  6U) == 0) && m_trunkingProtocol) {
+			if (m_status == RUNNING) {
+				LogWarning("%s, Login to the master via DTC protocol has failed, retrying login ...", m_name.c_str());
+				m_status = WAITING_LOGIN;
+				m_timeoutTimer.start();
+				m_retryTimer.start();
+			} else {
+				/* Once the modem death spiral has been prevented in Modem.cpp
+				   the Network sometimes times out and reaches here.
+				   We want it to reconnect so... */
+				LogError("%s, Login to the master via DTC protocol has failed, retrying network ...", m_name.c_str());
+				close(false);
+				open();
+				return;
+			}
+		} else if ((::memcmp(m_buffer, "DTCACK",  6U) == 0) && m_trunkingProtocol) {
+			switch (m_status) {
+				case WAITING_LOGIN:
+					LogDebug("%s, Sending DTC authorisation", m_name.c_str());
+					::memcpy(m_salt, m_buffer + 6U, sizeof(uint32_t));
+					writeAuthorisation();
+					m_status = WAITING_AUTHORISATION;
+					m_timeoutTimer.start();
+					m_retryTimer.start();
+					break;
+				case WAITING_AUTHORISATION:
+					LogDebug("%s, Sending DTC configuration", m_name.c_str());
+					writeConfig();
+					m_status = WAITING_CONFIG;
+					m_timeoutTimer.start();
+					m_retryTimer.start();
+					break;
+				case WAITING_CONFIG:
+				{
+					if (m_options.empty()) {
+						LogMessage("%s, Logged into the master via DTC protocol successfully", m_name.c_str());
+						m_status = RUNNING;
+						unsigned char len = 5U;
+						unsigned char msg_buffer[len];
+						msg_buffer[0U] = 'D';
+						msg_buffer[1U] = 'M';
+						msg_buffer[2U] = 'R';
+						msg_buffer[3U] = 'T';
+						msg_buffer[4U] = 0xC1;
+						m_rxData.addData(&len, 1U);
+						m_rxData.addData(msg_buffer, len);
+					} else {
+						LogDebug("%s, Sending DTC options", m_name.c_str());
+						writeOptions();
+						m_status = WAITING_OPTIONS;
+					}
+					m_timeoutTimer.start();
+					m_retryTimer.start();
+					break;
+				}
+				case WAITING_OPTIONS:
+				{
+					LogMessage("%s, Logged into the master via DTC protocol successfully", m_name.c_str());
+					m_status = RUNNING;
+					unsigned char len = 5U;
+					unsigned char msg_buffer[len];
+					msg_buffer[0U] = 'D';
+					msg_buffer[1U] = 'M';
+					msg_buffer[2U] = 'R';
+					msg_buffer[3U] = 'T';
+					msg_buffer[4U] = 0xC1;
+					m_rxData.addData(&len, 1U);
+					m_rxData.addData(msg_buffer, len);
+					m_timeoutTimer.start();
+					m_retryTimer.start();
+					break;
+				}
+				default:
+					break;
+			}
+		} else if ((::memcmp(m_buffer, "DTCCL",   5U) == 0) && m_trunkingProtocol) {
+			LogError("%s, Master is closing down", m_name.c_str());
+			unsigned char len = 5U;
+			unsigned char msg_buffer[len];
+			msg_buffer[0U] = 'D';
+			msg_buffer[1U] = 'M';
+			msg_buffer[2U] = 'R';
+			msg_buffer[3U] = 'T';
+			msg_buffer[4U] = 0xC2;
+			m_rxData.addData(&len, 1U);
+			m_rxData.addData(msg_buffer, len);
+			close(false);
+			open();
+		} else if ((::memcmp(m_buffer, "DTCPONG", 7U) == 0) && m_trunkingProtocol) {
+			m_timeoutTimer.start();
+		} else if ((::memcmp(m_buffer, "DTCSBKN", 7U) == 0) && m_trunkingProtocol) {
+			m_beacon = true;
 		} else {
 			char buffer[100U];
 			::sprintf(buffer, "%s, Unknown packet from the master", m_name.c_str());
@@ -468,8 +609,10 @@ void CDMRNetwork::clock(unsigned int ms)
 bool CDMRNetwork::writeLogin()
 {
 	unsigned char buffer[8U];
-
-	::memcpy(buffer + 0U, "RPTL", 4U);
+	if(m_trunkingProtocol)
+		::memcpy(buffer + 0U, "DTCL", 4U);
+	else
+		::memcpy(buffer + 0U, "RPTL", 4U);
 	::memcpy(buffer + 4U, m_id, 4U);
 
 	return write(buffer, 8U);
@@ -485,7 +628,10 @@ bool CDMRNetwork::writeAuthorisation()
 		in[i + sizeof(uint32_t)] = m_password.at(i);
 
 	unsigned char out[40U];
-	::memcpy(out + 0U, "RPTK", 4U);
+	if(m_trunkingProtocol)
+		::memcpy(out + 0U, "DTCK", 4U);
+	else
+		::memcpy(out + 0U, "RPTK", 4U);
 	::memcpy(out + 4U, m_id, 4U);
 
 	CSHA256 sha256;
@@ -499,8 +645,10 @@ bool CDMRNetwork::writeAuthorisation()
 bool CDMRNetwork::writeOptions()
 {
 	char buffer[300U];
-
-	::memcpy(buffer + 0U, "RPTO", 4U);
+	if(m_trunkingProtocol)
+		::memcpy(buffer + 0U, "DTCO", 4U);
+	else
+		::memcpy(buffer + 0U, "RPTO", 4U);
 	::memcpy(buffer + 4U, m_id, 4U);
 	::strcpy(buffer + 8U, m_options.c_str());
 
@@ -510,8 +658,10 @@ bool CDMRNetwork::writeOptions()
 bool CDMRNetwork::writeConfig()
 {
 	char buffer[400U];
-
-	::memcpy(buffer + 0U, "RPTC", 4U);
+	if(m_trunkingProtocol)
+		::memcpy(buffer + 0U, "DTCC", 4U);
+	else
+		::memcpy(buffer + 0U, "RPTC", 4U);
 	::memcpy(buffer + 4U, m_id, 4U);
 	::memcpy(buffer + 8U, m_configData, m_configLen);
 
@@ -524,8 +674,10 @@ bool CDMRNetwork::writeConfig()
 bool CDMRNetwork::writePing()
 {
 	unsigned char buffer[11U];
-
-	::memcpy(buffer + 0U, "RPTPING", 7U);
+	if(m_trunkingProtocol)
+		::memcpy(buffer + 0U, "DTCPING", 7U);
+	else
+		::memcpy(buffer + 0U, "RPTPING", 7U);
 	::memcpy(buffer + 7U, m_id, 4U);
 
 	return write(buffer, 11U);

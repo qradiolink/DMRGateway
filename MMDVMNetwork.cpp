@@ -30,12 +30,13 @@ const unsigned int BUFFER_LENGTH = 500U;
 const unsigned int HOMEBREW_DATA_PACKET_LENGTH = 55U;
 
 
-CMMDVMNetwork::CMMDVMNetwork(const std::string& rptAddress, unsigned short rptPort, const std::string& localAddress, unsigned short localPort, bool debug) :
+CMMDVMNetwork::CMMDVMNetwork(const std::string& rptAddress, unsigned short rptPort, const std::string& localAddress, unsigned short localPort, bool debug, bool trunkingProtocol) :
 m_rptAddr(),
 m_rptAddrLen(0U),
 m_id(0U),
 m_netId(NULL),
 m_debug(debug),
+m_trunkingProtocol(trunkingProtocol),
 m_socket(localAddress, localPort),
 m_buffer(NULL),
 m_rxData(1000U, "MMDVM Network"),
@@ -107,6 +108,15 @@ bool CMMDVMNetwork::read(CDMRData& data)
 
 	m_rxData.getData(&length, 1U);
 	m_rxData.getData(m_buffer, length);
+	
+	if ((::memcmp(m_buffer, "DMRT", 4U) == 0) && m_trunkingProtocol)
+	{
+		if(data.setMessage(m_buffer, length))
+		{
+			return true;
+		}
+		return false;
+	}
 
 	// Is this a data packet?
 	if (::memcmp(m_buffer, "DMRD", 4U) != 0)
@@ -156,14 +166,37 @@ bool CMMDVMNetwork::read(CDMRData& data)
 		data.setDataType(DT_VOICE);
 		data.setN(n);
 	}
+	
+	if((length == HOMEBREW_DATA_PACKET_LENGTH + 16) && m_trunkingProtocol)
+	{
+		unsigned char uuid[16];
+		::memset(uuid, 0, 16U);
+		::memcpy(uuid, m_buffer + 55U, 16U);
+		data.setUUID(uuid);
+	}
 
 	return true;
 }
 
 bool CMMDVMNetwork::write(const CDMRData& data)
 {
-	unsigned char buffer[HOMEBREW_DATA_PACKET_LENGTH];
-	::memset(buffer, 0x00U, HOMEBREW_DATA_PACKET_LENGTH);
+	if(data.getMessageFlag() && m_trunkingProtocol)
+	{
+		unsigned int buffer_size = data.getMessageSize();
+		if(buffer_size < 1)
+			return false;
+		unsigned char buffer[buffer_size];
+		::memset(buffer, 0x00U, buffer_size);
+		unsigned int length = data.getMessage(buffer);
+		if (m_debug)
+			CUtils::dump(1U, "Network Transmitted", buffer, length);
+
+		m_socket.write(buffer, length, m_rptAddr, m_rptAddrLen);
+		return true;
+	}
+	unsigned int buffer_size = m_trunkingProtocol ? HOMEBREW_DATA_PACKET_LENGTH + 16U : HOMEBREW_DATA_PACKET_LENGTH;
+	unsigned char buffer[buffer_size];
+	::memset(buffer, 0x00U, buffer_size);
 
 	buffer[0U]  = 'D';
 	buffer[1U]  = 'M';
@@ -208,11 +241,18 @@ bool CMMDVMNetwork::write(const CDMRData& data)
 	buffer[53U] = data.getBER();
 
 	buffer[54U] = data.getRSSI();
+	
+	if(m_trunkingProtocol)
+	{
+		unsigned char uuid[16U];
+		data.getUUID(uuid);
+		::memcpy(buffer + 55U, uuid, 16U);
+	}
 
 	if (m_debug)
-		CUtils::dump(1U, "Network Transmitted", buffer, HOMEBREW_DATA_PACKET_LENGTH);
+		CUtils::dump(1U, "Network Transmitted", buffer, buffer_size);
 
-	m_socket.write(buffer, HOMEBREW_DATA_PACKET_LENGTH, m_rptAddr, m_rptAddrLen);
+	m_socket.write(buffer, buffer_size, m_rptAddr, m_rptAddrLen);
 
 	return true;
 }
@@ -271,7 +311,11 @@ void CMMDVMNetwork::clock(unsigned int ms)
 	if (m_debug)
 		CUtils::dump(1U, "Network Received", m_buffer, length);
 
-	if (::memcmp(m_buffer, "DMRD", 4U) == 0) {
+	if ((::memcmp(m_buffer, "DMRT", 4U) == 0) && (length < 255) && m_trunkingProtocol) {
+		unsigned char len = length;
+		m_rxData.addData(&len, 1U);
+		m_rxData.addData(m_buffer, len);
+	} else if (::memcmp(m_buffer, "DMRD", 4U) == 0) {
 		unsigned char len = length;
 		m_rxData.addData(&len, 1U);
 		m_rxData.addData(m_buffer, len);

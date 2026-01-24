@@ -30,7 +30,7 @@
 class CDMRNetwork
 {
 public:
-	CDMRNetwork(const std::string& address, unsigned short port, unsigned short local, unsigned int id, const std::string& password, const std::string& name, bool location, bool debug);
+	CDMRNetwork(const std::string& address, unsigned short port, unsigned short local, unsigned int id, const std::string& password, const std::string& name, bool location, bool debug, bool trunkingProtocol);
 	~CDMRNetwork();
 
 	void setOptions(const std::string& options);
@@ -94,6 +94,7 @@ private:
 	unsigned int   m_configLen;
 
 	bool           m_beacon;
+	bool           m_trunkingProtocol;
 
 	bool writeLogin();
 	bool writeAuthorisation();
